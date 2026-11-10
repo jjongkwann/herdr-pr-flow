@@ -2,7 +2,7 @@
 // in the same panel. It only reads: nothing here writes to GitHub or sends to an agent.
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, Scrollbar, TextView, v_virtual_list, TextareaState, Textarea } from "gpui-base";
-import { agents, panes, spaces, focused, exec, run, theme, props, settings, shared, setShared, nextCommand, window as appWindow } from "herdr";
+import { agents, panes, spaces, focused, exec, run, theme, props, settings, shared, setShared, nextCommand, layout, window as appWindow } from "herdr";
 import { MERGE_METHODS, createGh, parseRemote, runIdFromUrl } from "./gh.js";
 import { createTracker } from "./tracker.js";
 import { translator, relative, effectiveLang } from "./i18n.js";
@@ -64,6 +64,14 @@ function openExternal(url) {
 // An app started from the Finder has no LANG, so ask macOS too.
 const LOCALE = 'l="${LC_ALL:-${LC_MESSAGES:-$LANG}}"; case "$l" in ""|C|C.*|POSIX) l=$(defaults read -g AppleLocale 2>/dev/null);; esac; printf %s "$l"';
 const systemLang = () => exec("sh", ["-c", LOCALE]).then((r) => (/^ko/i.test(r.stdout) ? "ko" : "en")).catch(() => "en");
+
+const findNode = (n, id) => !n || typeof n !== "object" ? null : n.id === id ? n : (n.children ?? []).reduce((a, c) => a ?? findNode(c, id), null);
+// In a side panel stack only the shown child polls GitHub; anywhere else (a pane, a tab, its own column) it always polls.
+function hidden() {
+  const root = layout(), body = findNode(root, "panel-body");
+  if (!body || !(body.children ?? []).some((c) => c.content?.mod === "pr-flow")) return false;
+  return !!findNode(root, "panel")?.hidden || findNode(body, body.active)?.content?.mod !== "pr-flow";
+}
 
 function agentList() {
   const allPanes = panes(), allSpaces = spaces();
@@ -219,7 +227,7 @@ export default class PrFlow extends View {
   }
 
   tick(cx) {
-    if (this.busy) return;
+    if (this.busy || hidden()) return;
     this.busy = true;
     const before = this.signature();
     cx.spawn(async (cx) => {
