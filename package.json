@@ -1,6 +1,6 @@
 {
   "name": "herdr-pr-flow",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Herdr app mod: a side panel with every PR your agents opened and where each one is.",
   "type": "module",
@@ -8,7 +8,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "version": "node scripts/sync-version.mjs && git add mods/pr-flow/version.js"
   },
   "license": "MIT"
 }
