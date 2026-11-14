@@ -199,7 +199,7 @@ export default class PrFlow extends View {
   }
 
   checkUpdate(cx) {
-    if (!due(this.update, Date.now())) return;
+    if (!due(this.update, Date.now()) || hidden()) return;
     this.saveUpdate({ checked: Date.now() }); // before asking, so a failure waits a day too
     cx.spawn(async (cx) => {
       try { const latest = parseRelease(await this.gh.latestRelease(REPO)); if (latest) { this.saveUpdate({ latest }); cx.notify(); } } catch {}
@@ -256,6 +256,7 @@ export default class PrFlow extends View {
 
   tick(cx) {
     if (this.busy || hidden()) return;
+    this.checkUpdate(cx); // the hourly timer may only ever fire while hidden
     this.busy = true;
     const before = this.signature();
     cx.spawn(async (cx) => {
